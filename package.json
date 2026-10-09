@@ -1,6 +1,6 @@
 {
   "name": "cytoscape-graphics-export",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Browser SVG and PDF export for Cytoscape.js",
   "license": "MIT",
   "type": "module",
