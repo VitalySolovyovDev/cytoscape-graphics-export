@@ -1,5 +1,5 @@
 {
-  "name": "@vitaly.solovyov.dev/cytoscape-graphics-export",
+  "name": "cytoscape-graphics-export",
   "version": "0.1.0",
   "description": "Browser SVG and PDF export for Cytoscape.js",
   "license": "MIT",

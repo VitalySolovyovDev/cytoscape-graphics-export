@@ -5,13 +5,13 @@ Browser-only SVG and PDF export for Cytoscape.js. PDF uses a direct jsPDF drawin
 ## Install
 
 ```sh
-npm install @vitaly.solovyov.dev/cytoscape-graphics-export cytoscape@3.32.0
+npm install cytoscape-graphics-export cytoscape@3.32.0
 ```
 
 ## Export
 
 ```ts
-import { exportSvg, exportPdf } from '@vitaly.solovyov.dev/cytoscape-graphics-export';
+import { exportSvg, exportPdf } from 'cytoscape-graphics-export';
 
 const svg = await exportSvg(cy);
 const areaSvg = await exportSvg(cy, {

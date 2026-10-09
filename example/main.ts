@@ -2,7 +2,7 @@ import cytoscape from 'cytoscape';
 import {
 	exportSvg,
 	exportPdf,
-} from '@vitaly.solovyov.dev/cytoscape-graphics-export';
+} from 'cytoscape-graphics-export';
 
 document.body.innerHTML = `<style>body{font:16px sans-serif;margin:24px}#graph{width:900px;height:500px;border:1px solid #ccc}button{margin:12px 8px 12px 0}label{display:block;margin:8px 0}</style>
 <h1>Cytoscape Graphics Export</h1><div id="graph"></div>
