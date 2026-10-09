@@ -85,7 +85,7 @@ const waitForImageReady = (image: TCachedImage): Promise<void> => {
 	});
 };
 
-const waitForBackgroundImages = async (graphCore: Core): Promise<void> => {
+export const waitForBackgroundImages = async (graphCore: Core): Promise<void> => {
 	const renderer = asExportCore(graphCore).renderer();
 	if (typeof renderer.getCachedImage !== 'function') return;
 	const pending = new Set<TCachedImage>();
