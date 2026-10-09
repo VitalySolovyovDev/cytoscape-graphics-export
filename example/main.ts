@@ -67,6 +67,7 @@ for (const button of buttons)
 				blob = await exportPdf(cy, {
 					area,
 					fonts: {
+						family: "Roboto",
 						normal: await normal.arrayBuffer(),
 						italic: await italic.arrayBuffer(),
 					},

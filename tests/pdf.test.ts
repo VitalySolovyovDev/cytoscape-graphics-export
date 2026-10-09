@@ -1,7 +1,7 @@
 import cytoscape from 'cytoscape';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportPdf } from '../src/index.js';
-const fonts = { normal: new ArrayBuffer(0), italic: new ArrayBuffer(0) };
+const fonts = { family: 'Example', normal: new ArrayBuffer(0), italic: new ArrayBuffer(0) };
 const checkpoint = vi.hoisted(() => ({
 	inspect: (_options?: { format: number[] }) => {},
 }));

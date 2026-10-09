@@ -3,73 +3,19 @@ import { jsPDF } from 'jspdf';
 import type { ExportArea, PdfFonts } from '../types/public.js';
 import { asExportCore, clampRect, withDrawingState } from '../internal/drawingState.js';
 import { drawArcTo, type TPoint } from './arc.js';
+import { registerPdfFonts, configurePdfFonts, pdfFontSize } from './fonts.js';
 const EXPORT_BG = '#ffffff';
 const FULL_EXPORT_PADDING = 16;
 const MAX_PDF_PT = 14400;
 const PX_TO_PT = 72 / 96;
-const PDF_FONT_FAMILY = 'Roboto';
 const PNG_MIME = 'image/png';
-const arrayBufferToBinaryString = (buffer: ArrayBuffer): string => {
-	const bytes = new Uint8Array(buffer);
-	let binary = '';
-	const chunkSize = 0x8000;
-	for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-		binary += String.fromCharCode(
-			...bytes.subarray(offset, offset + chunkSize),
-		);
-	}
-	return binary;
-};
-
-const registerPdfFonts = (doc: jsPDF, fonts: PdfFonts) => {
-	const vfs = {
-		normal: arrayBufferToBinaryString(fonts.normal),
-		italic: arrayBufferToBinaryString(fonts.italic),
-	};
-	doc.addFileToVFS('Roboto.ttf', vfs.normal);
-	doc.addFileToVFS('Roboto-Italic.ttf', vfs.italic);
-
-	const styles = ['normal', 'bold', 'italic', 'bolditalic'] as const;
-	for (const style of styles) {
-		const file =
-			style === 'italic' || style === 'bolditalic'
-				? 'Roboto-Italic.ttf'
-				: 'Roboto.ttf';
-		// Регистрируем встроенный шрифт с Unicode-кодировкой для подписей, включая кириллицу.
-		doc.addFont(file, PDF_FONT_FAMILY, style, 'Identity-H');
-	}
-
-	doc.setFont(PDF_FONT_FAMILY, 'normal');
-};
-
 type TPdfDrawingContext = CanvasRenderingContext2D & {
 	autoPaging: boolean;
 	path: unknown[];
 	ctx: { fillOpacity: number; strokeOpacity: number; font: string };
 };
 
-// Извлекаем размер из Canvas font, чтобы пропустить невидимый текст размером 0.
-const pdfFontSize = (font: string): number =>
-	Number.parseFloat(font.split('px')[0].trim().split(' ').at(-1) ?? '');
-
 type TApplyPdfOpacity = (fillOpacity?: number) => void;
-
-const configurePdfFonts = (
-	context: TPdfDrawingContext,
-	nativeContext: TPdfDrawingContext,
-) => {
-	// Свойство font jsPDF нельзя заменить; на обёртке задаём выбор Roboto и обработку 0px.
-	Object.defineProperty(context, 'font', {
-		get: () => nativeContext.font,
-		set: (value: string) => {
-			const end = value.indexOf('px');
-			const font = end < 0 ? value : `${value.slice(0, end + 2)} Roboto`;
-			// jsPDF не принимает 0px. Сохраняем размер напрямую, чтобы пропустить скрытую подпись.
-			if (pdfFontSize(font) === 0) nativeContext.ctx.font = font;
-			else nativeContext.font = font;
-		},
-	});
-};
 
 /** Создаем ф-ю применения параметров прозрачности с кэшированием однотипных вариантов */
 const createPdfOpacitySetter = (
@@ -374,7 +320,7 @@ const configurePdfImages = (
 
 /** Дополняем Canvas API jsPDF для точного рисования Cytoscape.
  * Кэшируем варианты Opacity и изображения, сохраняя кэши на один экспорт. */
-const createPdfDrawingContext = (doc: jsPDF): TPdfDrawingContext => {
+const createPdfDrawingContext = (doc: jsPDF, fonts: PdfFonts): TPdfDrawingContext => {
 	const nativeContext = doc.context2d as unknown as TPdfDrawingContext;
 	// Наследуем Canvas API jsPDF, чтобы переопределить только методы
 	// и свойства, требующие поправок для renderer Cytoscape.
@@ -382,7 +328,7 @@ const createPdfDrawingContext = (doc: jsPDF): TPdfDrawingContext => {
 	// Отключаем автосоздание страниц: весь кадр должен остаться на одной.
 	context.autoPaging = false;
 	const applyOpacity = createPdfOpacitySetter(context, doc);
-	configurePdfFonts(context, nativeContext);
+	configurePdfFonts(context, nativeContext, fonts);
 	configurePdfOpacity(context, applyOpacity);
 	configurePdfText(context, applyOpacity);
 	configurePdfPaths(context);
@@ -445,8 +391,8 @@ const getAreaPdfFrame = (graphCore: Core, area: ExportArea): TPdfFrame => {
  * Renderer Cytoscape рассчитывает формы, подписи и порядок наложения элементов;
  * наш контекст записывает его Canvas-команды сразу в PDF. Это позволяет не создавать
  * большой SVG и не обходить его повторно конвертером ради тех же фигур.
- * withExportState уже подготовила стили и картинки, поэтому здесь остаётся разместить
- * схему на одной странице и запустить рисование.
+ * Вызывающий код выбирает стили; подготовка экспорта ждёт фоновые картинки.
+ * Здесь размещаем граф на одной странице и запускаем рисование.
  *
  * Координаты и размеры элементов: https://js.cytoscape.org/#eles.boundingBox
  * Canvas-команды в PDF: https://parallax.github.io/jsPDF/docs/module-context2d.html
@@ -484,17 +430,17 @@ const captureGraphicsPdf = async (
 		compress: true,
 		putOnlyUsedFonts: true,
 	});
-	// В PDF нет шрифтов страницы браузера: встраиваем Roboto для подписей и кириллицы.
+	// В PDF встраиваем TTF, переданные вызывающим приложением.
 	registerPdfFonts(doc, fonts);
 	// createPdfDrawingContext дополняет Canvas API jsPDF:
 	// измеряет текст через canvas, реализует arcTo и согласует
 	// рисование изображений. Это позволяет renderer Cytoscape рисовать
 	// через PDF-контекст с геометрией фигур и подписей.
-	const context = createPdfDrawingContext(doc);
+	const context = createPdfDrawingContext(doc, fonts);
 	const renderer = core.renderer();
 	const originalUsePaths = renderer.usePaths;
 	try {
-		// withExportState временно меняет стили. Пересчитываем зависимую от них
+		// Стили могли измениться перед экспортом. Пересчитываем зависимую от них
 		// геометрию renderer, иначе рисование может использовать прежние размеры
 		// и положения подписей из кэша.
 		renderer.flushRenderedStyleQueue();

@@ -22,14 +22,15 @@ const areaSvg = await exportSvg(cy, {
   area: { x: 100, y: 50, w: 600, h: 400 },
 });
 
-const [normal, italic] = await Promise.all(
-  ['/fonts/Roboto.ttf', '/fonts/Roboto-Italic.ttf'].map(async url => {
+const [normal, bold, italic, bolditalic] = await Promise.all(
+  ['/fonts/Example-Regular.ttf', '/fonts/Example-Bold.ttf',
+   '/fonts/Example-Italic.ttf', '/fonts/Example-BoldItalic.ttf'].map(async url => {
     const response = await fetch(url);
     if (!response.ok) throw new Error(`Unable to load font: ${url}`);
     return response.arrayBuffer();
   }),
 );
-const pdf = await exportPdf(cy, { fonts: { normal, italic } });
+const pdf = await exportPdf(cy, { fonts: { family: 'Example', normal, bold, italic, bolditalic } });
 ```
 
 All three functions return `Promise<Blob>`. They do not download files. With no `area`, the entire graph is exported. `area` uses CSS pixels relative to the container's displayed top-left corner, including CSS container scaling, and is clipped to the viewport. The caller controls filenames, download UI and clipboard.
@@ -37,8 +38,8 @@ All three functions return `Promise<Blob>`. They do not download files. With no 
 ## Requirements and limitations
 
 - Tested with Cytoscape **3.32.0**, a browser DOM and the Canvas renderer. Internal renderer APIs are used; other Cytoscape versions are not supported yet.
-- PDF fonts are supplied by the caller as TTF `ArrayBuffer`s. The first release is tested with Roboto normal and italic. PDF uses normal for bold and italic for bolditalic, matching the current renderer integration; it does not synthesize bold.
-- The caller prepares application-specific visibility/LOD before export and restores it afterwards. Export does not reveal hidden application nodes.
+- PDF text uses the supplied `fonts.family`. Provide `normal` and any `bold`, `italic` or `bolditalic` TTF `ArrayBuffer`s used by the graph. Missing styles produce an error; the package does not synthesize or substitute styles. Make the family available in the browser too, so text measurements match the embedded font.
+- Export preserves the graph's current styles and visibility. Prepare any desired visibility changes before calling export.
 - Selection is temporarily cleared and restored. Renderer settings are restored even if drawing fails; in SVG/PDF, cached node Path2D objects are temporarily bypassed (Cytoscape otherwise offsets background images) and restored with the same identity. Edge path caches are retained. Camera position and zoom are not changed.
 - Calls for the same `Core` must be serialized by the caller. Heavy drawing runs on the browser main thread; the caller should show its busy indicator before starting.
 - Background images must be browser-readable, with appropriate CORS permissions. Export waits up to eight seconds for pending images; unreadable raster images may cause a Canvas security error.
@@ -77,3 +78,7 @@ MIT. See [LICENSE](./LICENSE) and [third-party licenses](./THIRD_PARTY_LICENSES.
 - `src/png`: PNG capture and cropping.
 - `src/pdf`: PDF export and arc geometry.
 - `src/internal`: shared drawing state and renderer helpers.
+
+## Migration from 1.x
+
+`PdfFonts` now requires `family` and registers only explicitly supplied styles. Add `family` and provide the styles used by your graph. To intentionally retain 1.x substitution, pass the same normal buffer as `bold` and the same italic buffer as `bolditalic`; this decision belongs to the caller. SVG and PNG APIs are unchanged.

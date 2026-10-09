@@ -5,4 +5,11 @@ export type ExportArea = {
 	h: number;
 };
 
-export type PdfFonts = { normal: ArrayBuffer; italic: ArrayBuffer };
+/** One embedded family for PDF text; supply each style used by the graph. */
+export type PdfFonts = {
+	family: string;
+	normal: ArrayBuffer;
+	bold?: ArrayBuffer;
+	italic?: ArrayBuffer;
+	bolditalic?: ArrayBuffer;
+};
