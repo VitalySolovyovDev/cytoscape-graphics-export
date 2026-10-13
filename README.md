@@ -1,6 +1,6 @@
 # Cytoscape Graphics Export
 
-Fast browser-only SVG, PDF and PNG export for Cytoscape.js. Export the whole graph or a selected area through a single API.
+Fast SVG, PDF and PNG export for Cytoscape.js. Export an entire graph or a selected area in the browser, with vector output for SVG and PDF.
 
 ## Install
 
@@ -37,21 +37,18 @@ All three functions return `Promise<Blob>`. They do not download files. With no 
 
 ## Why use this package?
 
-- **Significantly faster PDF export for large graphs:** during development, full-graph export on our large test graph went from over a minute with an SVG-to-PDF pipeline to around ten seconds with direct PDF drawing. Drawing commands go straight from the Cytoscape renderer to jsPDF, avoiding construction of a large intermediate SVG DOM and its traversal for PDF conversion. These measurements describe our development workload; actual timings depend on the graph, images and browser.
-- **SVG, PDF and PNG through one API:** each function accepts a Cytoscape instance and returns a `Blob`, ready for the caller's download or clipboard flow.
-- **The same area selection across formats:** export the whole graph or a rectangle specified in container-relative CSS pixels, without implementing separate cropping logic for each format.
-- **Reusable image conversion:** repeated image sources reuse their prepared PNG data within an export, reducing redundant raster conversion work.
-- **Vector paths and text:** SVG and PDF retain scalable geometry and text while embedding raster images.
-- **Graph state restoration:** temporary selection and renderer changes are restored after export, including drawing failures.
+- **Built for fast export of large graphs.** PDF shapes and text are drawn directly into the document. SVG and PDF exports reuse converted image data when the same image appears multiple times, reducing repeated processing.
+- **Three formats with one API.** Export SVG, PDF or PNG using the same options for the entire graph or a rectangular area. Each function returns a `Blob` that your application can download, copy or share.
+- **Sharp vector output.** SVG and PDF preserve vector paths and text, so diagrams remain sharp when enlarged. Raster images are embedded in the exported file.
+- **Preserves the graph's state.** Export leaves zoom and pan unchanged and restores selection and temporary renderer settings.
 
 ## Requirements and limitations
 
-- Tested with Cytoscape **3.32.0**, a browser DOM and the Canvas renderer. Internal renderer APIs are used; other Cytoscape versions are not supported yet.
+- Tested with Cytoscape **3.32.0**, a browser DOM and the Canvas renderer. Internal renderer APIs are used.
 - PDF text uses the supplied `fonts.family`. Provide `normal` and any `bold`, `italic` or `bolditalic` TTF `ArrayBuffer`s used by the graph. Missing styles produce an error; the package does not synthesize or substitute styles. Make the family available in the browser too, so text measurements match the embedded font.
 - Export preserves the graph's current styles and visibility. Prepare any desired visibility changes before calling export.
 - Selection is temporarily cleared and restored. Renderer settings are restored even if drawing fails; in SVG/PDF, cached node Path2D objects are temporarily bypassed (Cytoscape otherwise offsets background images) and restored with the same identity. Edge path caches are retained. Camera position and zoom are not changed.
-- Calls for the same `Core` must be serialized by the caller. Heavy drawing runs on the browser main thread; the caller should show its busy indicator before starting.
-- Background images must be browser-readable, with appropriate CORS permissions. Export waits up to eight seconds for pending images; unreadable raster images may cause a Canvas security error.
+- Calls for the same `Core` must be serialized by the caller. Heavy drawing runs on the browser main thread.
 - A complete loaded graph is required for full export. Node.js, headless rendering and server-side export are not supported.
 - PNG uses the native Cytoscape Canvas renderer with a white background. Full PNG is capped at 8192 px per side; area PNG is exported at 2x viewport resolution.
 - Large SVGs retain vector geometry while their display dimensions are capped at 8192 px. PDF dimensions are uniformly scaled to fit jsPDF's 14400 pt page limit.
