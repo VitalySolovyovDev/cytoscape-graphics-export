@@ -1,6 +1,6 @@
 # Cytoscape Graphics Export
 
-Browser-only SVG, PDF and PNG export for Cytoscape.js. PDF uses a direct jsPDF drawing adapter; SVG uses an independent renderer integration with MIT-licensed Canvas2SVG. It does not use cytoscape-svg or svg2pdf.
+Browser-only SVG, PDF and PNG export for Cytoscape.js. PDF uses a direct jsPDF drawing adapter; SVG uses an independent renderer integration with MIT-licensed Canvas2SVG.
 
 ## Install
 
@@ -34,6 +34,17 @@ const pdf = await exportPdf(cy, { fonts: { family: 'Example', normal, bold, ital
 ```
 
 All three functions return `Promise<Blob>`. They do not download files. With no `area`, the entire graph is exported. `area` uses CSS pixels relative to the container's displayed top-left corner, including CSS container scaling, and is clipped to the viewport. The caller controls filenames, download UI and clipboard.
+
+## Why use this package?
+
+[cytoscape-svg](https://github.com/kinimesi/cytoscape-svg) exports a Cytoscape graph to SVG. [svg2pdf.js](https://github.com/yWorks/svg2pdf.js) converts existing SVG documents to PDF. Cytoscape Graphics Export provides a single graph-export API instead:
+
+- **SVG, PDF and PNG through one API:** each function accepts a Cytoscape instance and returns a `Blob`, ready for the caller's download or clipboard flow.
+- **The same area selection across formats:** export the whole graph or a rectangle specified in container-relative CSS pixels, without implementing separate cropping logic for each format.
+- **Direct vector PDF output:** drawing commands are written to jsPDF without first building an SVG document and then traversing it for conversion. This removes an intermediate stage for large graphs; actual export time depends on graph size, images and the browser.
+- **Graph state restoration:** temporary selection and renderer changes are restored after export, including drawing failures.
+
+Choose this package for an integrated Cytoscape export flow. Choose svg2pdf.js when your input is an existing SVG document rather than a Cytoscape graph. This package targets the browser Canvas renderer and currently supports Cytoscape 3.32.0 only; it is not a general-purpose SVG-to-PDF converter.
 
 ## Requirements and limitations
 
