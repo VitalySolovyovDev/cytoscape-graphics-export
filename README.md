@@ -1,6 +1,6 @@
 # Cytoscape Graphics Export
 
-Browser-only SVG, PDF and PNG export for Cytoscape.js. PDF uses a direct jsPDF drawing adapter; SVG uses an independent renderer integration with MIT-licensed Canvas2SVG.
+Fast browser-only SVG, PDF and PNG export for Cytoscape.js. Export the whole graph or a selected area through a single API.
 
 ## Install
 
@@ -37,14 +37,12 @@ All three functions return `Promise<Blob>`. They do not download files. With no 
 
 ## Why use this package?
 
-[cytoscape-svg](https://github.com/kinimesi/cytoscape-svg) exports a Cytoscape graph to SVG. [svg2pdf.js](https://github.com/yWorks/svg2pdf.js) converts existing SVG documents to PDF. Cytoscape Graphics Export provides a single graph-export API instead:
-
+- **Significantly faster PDF export for large graphs:** during development, full-graph export on our large test graph went from over a minute with an SVG-to-PDF pipeline to around ten seconds with direct PDF drawing. Drawing commands go straight from the Cytoscape renderer to jsPDF, avoiding construction of a large intermediate SVG DOM and its traversal for PDF conversion. These measurements describe our development workload; actual timings depend on the graph, images and browser.
 - **SVG, PDF and PNG through one API:** each function accepts a Cytoscape instance and returns a `Blob`, ready for the caller's download or clipboard flow.
 - **The same area selection across formats:** export the whole graph or a rectangle specified in container-relative CSS pixels, without implementing separate cropping logic for each format.
-- **Direct vector PDF output:** drawing commands are written to jsPDF without first building an SVG document and then traversing it for conversion. This removes an intermediate stage for large graphs; actual export time depends on graph size, images and the browser.
+- **Reusable image conversion:** repeated image sources reuse their prepared PNG data within an export, reducing redundant raster conversion work.
+- **Vector paths and text:** SVG and PDF retain scalable geometry and text while embedding raster images.
 - **Graph state restoration:** temporary selection and renderer changes are restored after export, including drawing failures.
-
-Choose this package for an integrated Cytoscape export flow. Choose svg2pdf.js when your input is an existing SVG document rather than a Cytoscape graph. This package targets the browser Canvas renderer and currently supports Cytoscape 3.32.0 only; it is not a general-purpose SVG-to-PDF converter.
 
 ## Requirements and limitations
 
